@@ -7,4 +7,4 @@ __pycache__
 *.fdb_latexmk
 *.synctex.gz
 
-dataset/
+data/

@@ -15,8 +15,8 @@ def acc(pred, y):
     return np.count_nonzero((pred > 0) == (y > 0)) / pred.shape[0]
 
 def main():
-    train_X, train_y = sklearn.datasets.load_svmlight_file('dataset/a9a', n_features=N_FEATURES)
-    test_X, test_y = sklearn.datasets.load_svmlight_file('dataset/a9a.t', n_features=N_FEATURES)
+    train_X, train_y = sklearn.datasets.load_svmlight_file('data/a9a', n_features=N_FEATURES)
+    test_X, test_y = sklearn.datasets.load_svmlight_file('data/a9a.t', n_features=N_FEATURES)
 
     train_X = preprocess_X(train_X)
     test_X = preprocess_X(test_X)
