@@ -1,6 +1,5 @@
 \documentclass[journal, a4paper]{IEEEtran}
 
-\usepackage[scheme=plain]{ctex}
 % some very useful LaTeX packages include:
 
 %\usepackage{cite}      % Written by Donald Arseneau
@@ -209,153 +208,81 @@ Graduate
 \end{titlepage}
 
 % Define document title and author
-	\title{Chinese-English Translation Machine Based on Sequence to Sequence Network}
+	\title{Speech Synthesis Based on Neural Network}
 	\maketitle
 
 % Write abstract here
 \begin{abstract}
-In this experiment we build a sequence to sequence model to do the Chinese-English translation task, with a small-scale open dataset from Tatoeba Project.
+In this experiment train and run a speech synthesis model named \emph{Tacotron2}. We train it on open dataset \emph{LJSpeech}, and test it with any text we came up with.
 \end{abstract}
 
 % Each section begins with a \section{title} command
 \section{Introduction}
 
 \PARstart{W}{e} are conducting this experiment in hope of:
-1. Understand natural language processing;
-2. Understand the classic Sequence-to-Sequence machine translation model;
-3. Master the application of attention mechanism in machine tranlstion model;
-4. Build machine translation models, verify model performance on simple and small-scale datasets, and cultivate engineering capabilities;
-5. Understand the application of Transformer in machine translation tasks.
-After the experiment, we get a basic sequence-to-sequence Chinese-English machine translation model. It can successfully translate simple Chinese sentence into English.
+1. Understand the basic theory of speech signal processing;
+2. Understand the application of sequence modeling in speech synthesis;
+3. Understand the processes of \emph{Tacotron2} and use it in practice.
+
+After the experiment, we get a speech synthesis model. It can transform any English sentence into speech, also known as text-to-speech (TTS) task.
 
 % Main Part
 \section{Methods and Theory}
 
-\subsection{RNN}
+\subsection{Spectrogram}
 
-A Recurrent Neural Network (RNN) is a network that operates on a sequence and uses its own output as input for subsequent steps. There are many variants of RNN. In this experiment, we use Gated Recurrent Units (GRUs).
+A spectrogram is a visual representation of the spectrum of frequencies of a signal as it varies with time.
 
-\subsection{The Sequence-to-Sequence Model}
+A common format is a graph with two geometric dimensions: one axis represents time, and the other axis represents frequency; a third dimension indicating the amplitude of a particular frequency at a particular time is represented by the intensity or color of each point in the image.
 
-A Sequence to Sequence network, or seq2seq network, or Encoder Decoder network, is a model consisting of two RNNs called the encoder and decoder. The encoder reads an input sequence and outputs a single vector, and the decoder reads that vector to produce an output sequence. As illustrated in figure~\ref{figure:seq2seq}
+Spectrograms may be created from a time-domain signal in one of two ways: approximated as a filterbank that results from a series of band-pass filters (this was the only way before the advent of modern digital signal processing), or calculated from the time signal using the Fourier transform. These two methods actually form two different time–frequency representations, but are equivalent under some conditions.
+
+Creating a spectrogram using the FFT is a digital process. Digitally sampled data, in the time domain, is broken up into chunks, which usually overlap, and Fourier transformed to calculate the magnitude of the frequency spectrum for each chunk. Each chunk then corresponds to a vertical line in the image; a measurement of magnitude versus frequency for a specific moment in time (the midpoint of the chunk). These spectrums or time plots are then "laid side by side" to form the image or a three-dimensional surface,[4] or slightly overlapped in various ways, i.e. windowing. This process essentially corresponds to computing the squared magnitude of the short-time Fourier transform (STFT) of the signal $s(t)$ — that is, for a window width $\omega$, $\mathrm{spectrogram}(t,\omega)=\left|\mathrm {STFT} (t,\omega )\right|^{2}$
+
+\subsection{Mel Scale}
+
+The mel scale, named by Stevens, Volkmann, and Newman in 1937, is a perceptual scale of pitches judged by listeners to be equal in distance from one another. The reference point between this scale and normal frequency measurement is defined by assigning a perceptual pitch of 1000 mels to a 1000 Hz tone, 40 dB above the listener's threshold. Above about 500 Hz, increasingly large intervals are judged by listeners to produce equal pitch increments. As a result, four octaves on the hertz scale above 500 Hz are judged to comprise about two octaves on the mel scale. The name mel comes from the word melody to indicate that the scale is based on pitch comparisons.
+
+A popular formula to convert $f$ hertz into $m$ mels is:
+\begin{equation}
+    m=2595\log _{10}\left(1+{\frac {f}{700}}\right)
+\end{equation}
 
 \begin{figure}[htb]
-    \includegraphics[width=\linewidth]{figures/seq2seq.png}
-    \caption{Example of sequence-to-sequence model}
-    \label{figure:seq2seq}
+    \includegraphics[width=\linewidth]{figures/Mel-Hz_plot.pdf}
+    \caption{Plots of pitch mel scale versus Hertz scale}
 \end{figure}
 
-Unlike sequence prediction with a single RNN, where every input corresponds to an output, the seq2seq model frees us from sequence length and order, which makes it ideal for translation between two languages.
+With mel scale applied on frequency axis of spectrogram, we get mel-spectrogram, which is used as the training target in this experiment.
 
-With a seq2seq model the encoder creates a single vector $\mathbf{c}\in\mathbb{R}^N$ which, in the ideal case, encodes the “meaning” of the input sequence into a single vector.
+\subsection{Tacotron 2}
 
-\subsection{Attention in Decoder}
+Tacotron 2 is a neural network architecture for speech synthesis directly from text. The system is composed of a recurrent sequence-to-sequence feature prediction network that maps character embeddings to mel-scale spectrograms, followed by a modified WaveNet model acting as a vocoder to synthesize time-domain waveforms from those spectrograms. The architecture is illustrated in figure~\ref{figure:t2-block}
 
-If only the context vector $\mathbf{c}$ is passed betweeen the encoder and decoder, that single vector carries the burden of encoding the entire sentence.
-
-Attention allows the decoder network to "focus" on a different part of the encoder’s outputs for every step of the decoder’s own outputs. First we calculate a set of attention weights. These will be multiplied by the encoder output vectors to create a weighted combination. The result should contain information about that specific part of the input sequence, and thus help the decoder choose the right output words.
-
-Calculating the attention weights is done with another feed-forward layer, using the decoder’s input and hidden state as inputs. Because there are sentences of all sizes in the training data, to actually create and train this layer we have to choose a maximum sentence length (input length, for encoder outputs) that it can apply to. Sentences of the maximum length will use all the attention weights, while shorter sentences will only use the first few.
-
-The \emph{dot-product} attention is also very famous. It don’t have restriction on input length, and is used by the \emph{Transformer} models. We don’t use this type of attention is this experiment though.
+\begin{figure}[htb]
+    \includegraphics[width=\linewidth]{figures/t2-block.png}
+    \caption{Block diagram of the Tacotron 2 system rchitecture}
+    \label{figure:t2-block}
+\end{figure}
 
 \section{Experiments}
 
 \subsection{Dataset}
 
-We use the Chinese-English bilingual sentence pairs from \emph{Tatoeba Project}\footnote{https://www.manythings.org/anki/cmn-eng.zip}. It consists of 24,026 pairs. Since the dataset is small, the model is not likely to learn very complex translation. So I just used the pairs with Chinese sentence shorter than 16 characters. I randomly choose 70\% (15,802 samples) for training and use the rest (6,773 samples) for testing.
+we use the public speech synthesis dataset \emph{LJSpeech}\footnote{https://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2}. It consists of 13,100 short audio clips. A transcription is provided for each clip. Clips have a total length of approximately 24 hours.
 
 \subsection{Implementation}
 
-I use PyTorch to implement the model and the whole pipeline. Although I referred to the official tutorial\footnote{https://pytorch.org/tutorials/intermediate/seq2seq\_translation\_\\ tutorial.html}, there are still some major differences:
-First, My model can process a batch of sentence pairs, which greatly improves the training efficency. And this should also improve the training result stability, since we can use mini-batch SGD to work with more accurate gradient.
-Second, I implemented a slightly more complicated tokenizer, which can handle punctuations, and some more special cases.
-Last, My pipeline is fully distributed. It can utilize multiple GPUs to accelerate the training.
+The whole pipeline is Implemented by Python, the model is based on \emph{PyTorch}, \emph{librosa} and some other packages are used to deal with audio signals.
 
-For Chinese sentence tokenization, I just split each character as a token. And I also did some normalization on punctuations.
-
-The BLEU Implementation is from torchtext package.
-
-All parameters are initialized using default method in PyTorch. I use Adam optimizer with default parameters (learning rate 1e-3, $\beta$ 0.9, 0.999) other hyper-parameters are summarized in table~\ref{table:hyper-param} The whole training process only takes 3 minutes on 2 GeForce GTX TITAN X GPU.
-
-\begin{table}[htb]
-    \centering
-    \caption{Hyper Parameters}
-    \label{table:hyper-param}
-    \begin{tabular}{l|r}
-        \hline
-        Epoch         & 50  \\
-        Batch size    & 512 \\
-        Dropout       & 0.1 \\
-        Encoder hidden size & 512 \\
-        Decoder hidden size & 512 \\
-        \hline
-    \end{tabular}
-\end{table}
+I directly used the provided code. But that code is not well written, and contains some bugs. I made some small changes, and the synthesis improved dramatically. Due to the limited time and computation resources, I didn't perform the training process. But instead, I just used the provided checkpoint to run inference.
 
 \subsection{Results}
 
-The experiment result is summarizes in table~\ref{table:results}
-
-\begin{table}[htb]
-    \centering
-    \caption{Results}
-    \label{table:results}
-    \begin{tabular}{l|rr}
-        \hline
-                    & Train  & Test \\
-        \hline
-        loss        & 0.0433 & 6.8399 \\
-        token accuracy (\%) & 98.79 & 34.54  \\
-        BLEU        & -      & 0.2011
-    \end{tabular}
-\end{table}
-
-Very different from the previous linear classification experiment, this experiment shows severe overfitting. As illustrated in figure~\ref{figure:loss} and figure~\ref{figure:acc}, The training loss is 2 orders of magnitude smaller than the test loss, and the token accuracy on training samples is nearly 100\%. This could be because the model is more complicated, and is capable to "remember" all training samples; and because the translation task is more complicated while the amount of training data is too few.
-
-\begin{figure}
-    \includegraphics[width=\linewidth]{figures/loss.pdf}
-    \caption{Loss change with number of epoch}
-    \label{figure:loss}
-\end{figure}
-
-\begin{figure}
-    \includegraphics[width=\linewidth]{figures/acc.pdf}
-    \caption{Token accuracy change with number of epoch}
-    \label{figure:acc}
-\end{figure}
-
-Here I show some of the translation results in test set:
-
-Success samples:
-
-\begin{itemize}
-    \item 湯姆拍了手。\newline tom clapped .
-    \item 你喜歡這些照片里的任何一張嗎？\newline
-    do you like any of these pictures ?
-    \item 請進來。\newline please come in .
-\end{itemize}
-
-Not accurate but make some sense:
-
-\begin{itemize}
-    \item 他偷了她的手表。\newline he had her arm .
-    \item 這不便宜， 是嗎？\newline it 's not warm , isn't it ?
-    \item 我们现在就去医院吧。\newline let 's go out the right away .
-\end{itemize}
-
-Failure samples:
-
-\begin{itemize}
-    \item 参见上文。\newline the man to the tree .
-    \item 你的包开着。\newline your team is right .
-    \item 雪停了。\newline it 's 3:30 .
-\end{itemize}
-
-Some failure is caused by perticular words not recognized by the model, the overall sentence structure is fine. But there are also some failures not making any sense to me.
+Due to the limited time, I don't have many thing to report here. The synthesis quality is acceptable, when I listen to it, I can understand the content. But it contains many noise. So I suspect there are more bugs in the pipeline. I believe \emph{Tacotron 2} can perform better if Implemented correctly.
 
 \section{Conclusion}
 
-This experiment gives satisfying results. The 3-minute training and 1.6k training bilingual sentence pairs give a not-so-bad machine translation model. It can handle simple sentences. In this experiment, I'm familiarised with the sequence-to-sequence model as well as other parts of the machine learning pipeline. And my engineering skills are improved.
+This experiment gives barely acceptable results. The well-known \emph{Tacotron 2} model can synthesis speech from any English sentences. In this experiment, I'm familiarised with the speech signal processing pipeline and the \emph{Tacotron 2} model. And my engineering skills are improved.
 
 \end{document}
