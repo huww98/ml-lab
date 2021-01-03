@@ -1,0 +1,10 @@
+__pycache__
+
+*.log
+*.fls
+*.aux
+*.xdv
+*.fdb_latexmk
+*.synctex.gz
+
+dataset/
